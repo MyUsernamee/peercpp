@@ -18,10 +18,11 @@ namespace peercpp {
 
             Connection();
             ~Connection();
-            Connection(std::string id, std::string signaling_server_url);
+            Connection(std::string our_id, std::string id, std::string signaling_server_url);
 
-            std::string getId();
-            rtc::DataChannel& getDataChannel();
+            std::string getToId();
+            std::string getFromId();
+            rtc::DataChannel* getDataChannel();
 
             void onData(std::function<void(std::string)> callback);
             void onOpen(std::function<void()> callback);
@@ -31,7 +32,13 @@ namespace peercpp {
 
         private:
 
+            std::vector<std::function<void(std::string)>> on_data;
+            std::vector<std::function<void()>> on_open;
+            std::vector<std::function<void()>> on_close;
+
             std::string id;
+            std::string our_id;
+            std::shared_ptr<rtc::WebSocket> signaling_server;
             rtc::DataChannel* data_channel;
             rtc::PeerConnection* peer_connection;
 
@@ -40,6 +47,8 @@ namespace peercpp {
             std::function<void(std::string)> on_data;
             std::function<void()> on_open;
             std::function<void()> on_close;
+
+            void _establishConnection();
 
     };
 
