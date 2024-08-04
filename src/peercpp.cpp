@@ -3,27 +3,41 @@
 
 using namespace peercpp;
 
-Connection::Connection() {
-    this->id = "";
-    this->our_id = "";
-    this->data_channel = nullptr;
-    this->peer_connection = nullptr;
+Peer::Peer() {
+    this->options = PeerOptions();
+    this->configuration = DEFAULT_CONFIGURATION;
 }
 
-Connection::Connection(std::string our_id, std::string id, std::string signaling_server_url) {
+Peer::Peer(std::string id, PeerOptions options) {
     this->id = id;
-    this->our_id = our_id;
-    this->signaling_server = std::make_shared<rtc::WebSocket>(signaling_server_url);
-    this->data_channel = nullptr;
-    this->peer_connection = nullptr;
-
-
-    _establishConnection();
-
+    this->options = options;
+    this->configuration = DEFAULT_CONFIGURATION;
 }
 
-Connection::~Connection() {
-    delete this->data_channel;
-    delete this->peer_connection;
+Peer::Peer(PeerOptions options) {
+    this->options = options;
+    this->configuration = DEFAULT_CONFIGURATION;
+
+    _obtainId();
 }
 
+void Peer::_obtainId() {
+    std::string url = "http://" + this->options.host + ":" + std::to_string(this->options.port) + "/id";
+    if (this->options.secure) {
+        url = "https://" + this->options.host + ":" + std::to_string(this->options.port) + "/id";
+    }
+
+    if (this->options.token.has_value()) {
+        url += "?token=" + this->options.token.value();
+    }
+
+    auto response = rtc::http::get(url);
+    auto json = nlohmann::json::parse(response);
+
+    this->id = json["id"];
+}
+
+void Peer::start() {
+    this->signaling_server = std::make_shared<rtc::WebSocket>(this->getSignalingServerUrl());
+    this->signaling_server->connect();
+}
